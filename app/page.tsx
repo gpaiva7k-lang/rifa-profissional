@@ -89,6 +89,72 @@ export default function Home() {
           })}
         </div>
 
+          {/* Ganhadores */}
+<div className="space-y-4">
+  <h2 className="text-2xl font-bold text-purple-400 text-center">
+    🏆 Ganhadores Recentes
+  </h2>
+
+  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    {[
+      "/ganhadores/ganhador1.jpg",
+      "/ganhadores/ganhador2.jpg",
+      "/ganhadores/ganhador3.jpg",
+    ].map((img, i) => (
+      <div
+        key={i}
+        className="bg-black rounded-2xl overflow-hidden border border-purple-500"
+      >
+        <img
+          src={img}
+          alt="Ganhador"
+          className="w-full h-48 object-cover"
+        />
+        <div className="p-3 text-center text-sm text-gray-300">
+          🎉 Prêmio entregue com sucesso
+        </div>
+      </div>
+    ))}
+  </div>
+</div>
+
+    {/* Depoimentos */}
+<div className="space-y-4">
+  <h2 className="text-2xl font-bold text-purple-400 text-center">
+    💬 O que estão falando
+  </h2>
+
+  <div className="grid sm:grid-cols-3 gap-4">
+    {[
+      {
+        nome: "Carlos M.",
+        texto: "Achei que era golpe, mas ganhei de verdade 🔥",
+      },
+      {
+        nome: "Amanda R.",
+        texto: "Paguei no PIX e foi tudo certinho.",
+      },
+      {
+        nome: "João P.",
+        texto: "Comprei só um número e fui sorteado 😱",
+      },
+    ].map((d, i) => (
+      <div
+        key={i}
+        className="bg-gray-800 rounded-2xl p-4 border border-gray-700"
+      >
+        <p className="text-sm text-gray-300 italic">
+          “{d.texto}”
+        </p>
+        <p className="mt-2 text-purple-400 font-bold">
+          — {d.nome}
+        </p>
+      </div>
+    ))}
+  </div>
+</div>
+
+
         {/* Form */}
         <div className="grid sm:grid-cols-3 gap-4">
           <input
