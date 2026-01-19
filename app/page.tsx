@@ -2,89 +2,74 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import QRCode from "qrcode";
 
 const CHAVE_PIX = "43872033824";
 const VALOR = "10,00";
 const CONTATO = "(11) 90000-0000";
 
-type Rifa = {
-  numero: number;
-  status: string;
-};
-
 export default function Home() {
-  const [rifas, setRifas] = useState<Rifa[]>([]);
+  const [comprados, setComprados] = useState<number[]>([]);
   const [numero, setNumero] = useState<number | null>(null);
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
   const [sucesso, setSucesso] = useState(false);
-
-  const carregar = async () => {
-    const { data } = await supabase.from("rifas").select("numero,status");
-    if (data) setRifas(data);
-  };
+  const [qrCode, setQrCode] = useState<string | null>(null);
 
   useEffect(() => {
+    const carregar = async () => {
+      const { data } = await supabase.from("rifas").select("numero");
+      if (data) setComprados(data.map((n) => n.numero));
+    };
     carregar();
   }, []);
 
   const comprar = async () => {
-    if (!numero || !nome || !telefone) return;
+    if (!numero || !nome || !telefone) {
+      alert("Preencha todos os campos");
+      return;
+    }
 
     const { error } = await supabase.from("rifas").insert([
-      { numero, nome, telefone, status: "reservado" },
+      { numero, nome, telefone },
     ]);
 
-    if (!error) {
-      setSucesso(true);
-      carregar();
+    if (error) {
+      alert("Número indisponível");
+      return;
     }
-  };
 
-  const statusNumero = (n: number) => {
-    const r = rifas.find((x) => x.numero === n);
-    return r?.status || "livre";
+    setSucesso(true);
+    setComprados([...comprados, numero]);
+
+    // 🔥 GERA O QR CODE PIX
+    const qr = await QRCode.toDataURL(CHAVE_PIX);
+    setQrCode(qr);
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-purple-950 text-white flex justify-center p-6">
-      <div className="max-w-5xl w-full bg-gray-900 rounded-3xl shadow-2xl p-6 space-y-8">
+    <main className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <div className="max-w-4xl w-full bg-white rounded-2xl shadow-lg p-6 space-y-6">
 
-        {/* Cabeçalho */}
-        <div className="text-center space-y-2">
-          <h1 className="text-4xl font-extrabold text-purple-400">
-            🎟️ Rifa Premiada
-          </h1>
-          <p className="text-gray-400">
-            Escolha seu número da sorte e concorra
-          </p>
+        <div className="text-center">
+          <h1 className="text-3xl font-bold">🎟️ Rifa Premiada</h1>
+          <p className="text-gray-500">Escolha seu número da sorte</p>
         </div>
 
-        {/* Grade */}
         <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
           {Array.from({ length: 100 }, (_, i) => i + 1).map((n) => {
-            const status = statusNumero(n);
+            const vendido = comprados.includes(n);
+            const selecionado = numero === n;
 
             return (
               <button
                 key={n}
-                disabled={status !== "livre"}
+                disabled={vendido}
                 onClick={() => setNumero(n)}
-                className={`
-                  py-2 rounded-xl text-sm font-bold transition
-                  ${
-                    status === "pago" &&
-                    "bg-green-600 text-white cursor-not-allowed"
-                  }
-                  ${
-                    status === "reservado" &&
-                    "bg-yellow-500 text-black cursor-not-allowed"
-                  }
-                  ${
-                    status === "livre" &&
-                    "bg-gray-700 hover:bg-purple-600"
-                  }
-                  ${numero === n && "ring-2 ring-purple-400"}
+                className={`py-2 rounded-lg text-sm font-semibold
+                  ${vendido && "bg-gray-300 text-gray-500"}
+                  ${!vendido && !selecionado && "bg-gray-100 hover:bg-gray-200"}
+                  ${selecionado && "bg-green-500 text-white"}
                 `}
               >
                 {n}
@@ -93,58 +78,54 @@ export default function Home() {
           })}
         </div>
 
-        {/* Form */}
         <div className="grid sm:grid-cols-3 gap-4">
           <input
-            className="bg-gray-800 rounded-xl p-3 outline-none"
-            placeholder="Seu nome"
+            className="border rounded-lg p-2"
+            placeholder="Nome"
             onChange={(e) => setNome(e.target.value)}
           />
           <input
-            className="bg-gray-800 rounded-xl p-3 outline-none"
-            placeholder="WhatsApp"
+            className="border rounded-lg p-2"
+            placeholder="Telefone"
             onChange={(e) => setTelefone(e.target.value)}
           />
           <button
             onClick={comprar}
-            className="bg-purple-600 rounded-xl font-bold hover:bg-purple-700 transition"
+            className="bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700"
           >
-            Confirmar {numero && `#${numero}`}
+            Confirmar Número {numero && `#${numero}`}
           </button>
         </div>
 
-        {/* Pagamento */}
         {sucesso && (
-          <div className="bg-black/50 border border-purple-500 rounded-2xl p-6 space-y-3">
-            <h2 className="text-green-400 font-bold text-xl">
-              ✅ Número reservado!
+          <div className="bg-green-50 border border-green-200 rounded-xl p-4 space-y-4 text-center">
+            <h2 className="font-bold text-green-700">
+              ✅ Número reservado com sucesso!
             </h2>
 
-            <p>
-              <strong>Número:</strong> #{numero}
-            </p>
-            <p>
-              <strong>Valor:</strong> R$ {VALOR}
-            </p>
+            <p><strong>Número:</strong> {numero}</p>
+            <p><strong>Valor:</strong> R$ {VALOR}</p>
 
-            <div className="bg-gray-900 rounded-xl p-4">
-              <p className="text-sm text-gray-400">Chave PIX:</p>
-              <p className="font-mono break-all text-purple-400">
-                {CHAVE_PIX}
-              </p>
-            </div>
+            {qrCode && (
+              <div className="flex justify-center">
+                <img
+                  src={qrCode}
+                  alt="QR Code PIX"
+                  className="w-48 h-48 border rounded-xl"
+                />
+              </div>
+            )}
 
-            <p className="text-sm text-gray-400">
-              Envie o comprovante para:
-              <br />
-              <strong className="text-white">{CONTATO}</strong>
+            <p className="text-sm text-gray-600">
+              PIX: <strong>{CHAVE_PIX}</strong>
             </p>
 
-            <p className="text-red-400 text-sm">
-              ⚠️ Número confirmado somente após pagamento.
+            <p className="text-sm text-red-600">
+              ⚠️ O número será confirmado após o pagamento.
             </p>
           </div>
         )}
+
       </div>
     </main>
   );
