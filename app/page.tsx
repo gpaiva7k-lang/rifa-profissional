@@ -1,65 +1,151 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useState } from "react";
+import { supabase } from "../lib/supabase";
+
+const CHAVE_PIX = "43872033824";
+const VALOR = "10,00";
+const CONTATO = "(11) 90000-0000";
+
+type Rifa = {
+  numero: number;
+  status: string;
+};
 
 export default function Home() {
+  const [rifas, setRifas] = useState<Rifa[]>([]);
+  const [numero, setNumero] = useState<number | null>(null);
+  const [nome, setNome] = useState("");
+  const [telefone, setTelefone] = useState("");
+  const [sucesso, setSucesso] = useState(false);
+
+  const carregar = async () => {
+    const { data } = await supabase.from("rifas").select("numero,status");
+    if (data) setRifas(data);
+  };
+
+  useEffect(() => {
+    carregar();
+  }, []);
+
+  const comprar = async () => {
+    if (!numero || !nome || !telefone) return;
+
+    const { error } = await supabase.from("rifas").insert([
+      { numero, nome, telefone, status: "reservado" },
+    ]);
+
+    if (!error) {
+      setSucesso(true);
+      carregar();
+    }
+  };
+
+  const statusNumero = (n: number) => {
+    const r = rifas.find((x) => x.numero === n);
+    return r?.status || "livre";
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <main className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-purple-950 text-white flex justify-center p-6">
+      <div className="max-w-5xl w-full bg-gray-900 rounded-3xl shadow-2xl p-6 space-y-8">
+
+        {/* Cabeçalho */}
+        <div className="text-center space-y-2">
+          <h1 className="text-4xl font-extrabold text-purple-400">
+            🎟️ Rifa Premiada
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-gray-400">
+            Escolha seu número da sorte e concorra
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* Grade */}
+        <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
+          {Array.from({ length: 100 }, (_, i) => i + 1).map((n) => {
+            const status = statusNumero(n);
+
+            return (
+              <button
+                key={n}
+                disabled={status !== "livre"}
+                onClick={() => setNumero(n)}
+                className={`
+                  py-2 rounded-xl text-sm font-bold transition
+                  ${
+                    status === "pago" &&
+                    "bg-green-600 text-white cursor-not-allowed"
+                  }
+                  ${
+                    status === "reservado" &&
+                    "bg-yellow-500 text-black cursor-not-allowed"
+                  }
+                  ${
+                    status === "livre" &&
+                    "bg-gray-700 hover:bg-purple-600"
+                  }
+                  ${numero === n && "ring-2 ring-purple-400"}
+                `}
+              >
+                {n}
+              </button>
+            );
+          })}
         </div>
-      </main>
-    </div>
+
+        {/* Form */}
+        <div className="grid sm:grid-cols-3 gap-4">
+          <input
+            className="bg-gray-800 rounded-xl p-3 outline-none"
+            placeholder="Seu nome"
+            onChange={(e) => setNome(e.target.value)}
+          />
+          <input
+            className="bg-gray-800 rounded-xl p-3 outline-none"
+            placeholder="WhatsApp"
+            onChange={(e) => setTelefone(e.target.value)}
+          />
+          <button
+            onClick={comprar}
+            className="bg-purple-600 rounded-xl font-bold hover:bg-purple-700 transition"
+          >
+            Confirmar {numero && `#${numero}`}
+          </button>
+        </div>
+
+        {/* Pagamento */}
+        {sucesso && (
+          <div className="bg-black/50 border border-purple-500 rounded-2xl p-6 space-y-3">
+            <h2 className="text-green-400 font-bold text-xl">
+              ✅ Número reservado!
+            </h2>
+
+            <p>
+              <strong>Número:</strong> #{numero}
+            </p>
+            <p>
+              <strong>Valor:</strong> R$ {VALOR}
+            </p>
+
+            <div className="bg-gray-900 rounded-xl p-4">
+              <p className="text-sm text-gray-400">Chave PIX:</p>
+              <p className="font-mono break-all text-purple-400">
+                {CHAVE_PIX}
+              </p>
+            </div>
+
+            <p className="text-sm text-gray-400">
+              Envie o comprovante para:
+              <br />
+              <strong className="text-white">{CONTATO}</strong>
+            </p>
+
+            <p className="text-red-400 text-sm">
+              ⚠️ Número confirmado somente após pagamento.
+            </p>
+          </div>
+        )}
+      </div>
+    </main>
   );
 }
