@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { QRCodeCanvas } from "qrcode.react";
 
+
+
+
 /* ===== CONFIGURAÇÕES ===== */
 const CHAVE_PIX = "43872033824";
 const VALOR = "10.00"; // use ponto, não vírgula
@@ -19,7 +22,8 @@ type Rifa = {
 
 export default function Home() {
   const [rifas, setRifas] = useState<Rifa[]>([]);
-  const [numero, setNumero] = useState<number | null>(null);
+  const [numerosSelecionados, setNumerosSelecionados] = useState<number[]>([]);
+  const [numerosConfirmados, setNumerosConfirmados] = useState<number[]>([]);
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
   const [sucesso, setSucesso] = useState(false);
@@ -34,17 +38,31 @@ export default function Home() {
   }, []);
 
   const comprar = async () => {
-    if (!numero || !nome || !telefone) return;
+  if (!nome || !telefone || numerosSelecionados.length === 0) {
+    alert("Preencha todos os campos e selecione pelo menos um número.");
+    return;
+  }
 
-    const { error } = await supabase.from("rifas").insert([
-      { numero, nome, telefone, status: "reservado" },
-    ]);
+  const novasRifas = numerosSelecionados.map((numero) => ({
+    numero,
+    nome,
+    telefone,
+    status: "reservado",
+  }));
 
-    if (!error) {
-      setSucesso(true);
-      carregar();
-    }
-  };
+  const { error } = await supabase.from("rifas").insert(novasRifas);
+
+  if (!error) {
+  setNumerosConfirmados(numerosSelecionados); // salva os números
+  setSucesso(true);
+  setNumerosSelecionados([]); // agora pode limpar
+  carregar();
+}
+ else {
+    alert("Erro ao reservar números.");
+  }
+};
+
 
   const statusNumero = (n: number) => {
     const r = rifas.find((x) => x.numero === n);
@@ -71,20 +89,28 @@ export default function Home() {
             const status = statusNumero(n);
 
             return (
-              <button
-                key={n}
-                disabled={status !== "livre"}
-                onClick={() => setNumero(n)}
-                className={`
-                  py-2 rounded-xl text-sm font-bold transition
-                  ${status === "pago" && "bg-green-600 cursor-not-allowed"}
-                  ${status === "reservado" && "bg-yellow-500 text-black cursor-not-allowed"}
-                  ${status === "livre" && "bg-gray-700 hover:bg-purple-600"}
-                  ${numero === n && "ring-2 ring-purple-400"}
-                `}
-              >
-                {n}
-              </button>
+             <button
+  key={n}
+  disabled={status !== "livre"}
+  onClick={() =>
+    setNumerosSelecionados((prev) =>
+      prev.includes(n)
+        ? prev.filter((x) => x !== n)
+        : [...prev, n]
+    )
+  }
+  className={`
+    py-2 rounded-xl text-sm font-bold transition
+    ${status === "pago" && "bg-green-600 cursor-not-allowed"}
+    ${status === "reservado" && "bg-yellow-500 text-black cursor-not-allowed"}
+    ${status === "livre" && "bg-gray-700 hover:bg-purple-600"}
+    ${numerosSelecionados.includes(n) && "ring-2 ring-purple-400"}
+  `}
+>
+  {n}
+</button>
+
+
             );
           })}
         </div>
@@ -171,7 +197,9 @@ export default function Home() {
             onClick={comprar}
             className="bg-purple-600 rounded-xl font-bold hover:bg-purple-700 transition"
           >
-            Confirmar {numero && `#${numero}`}
+            Confirmar números ({numerosSelecionados.length})
+
+
           </button>
         </div>
 
@@ -182,8 +210,14 @@ export default function Home() {
               ✅ Número reservado!
             </h2>
 
-            <p><strong>Número:</strong> #{numero}</p>
-            <p><strong>Valor:</strong> R$ {VALOR}</p>
+            <p>
+              <strong>Números escolhidos:</strong>{" "}
+              {numerosConfirmados.join(", ")}
+            </p>
+            <p>
+              <strong>Valor total:</strong> R${" "}
+              {(numerosConfirmados.length * 10).toFixed(2)}
+            </p>
 
             {/* QR CODE */}
             <div className="flex justify-center">
