@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
-import QRCode from "qrcode.react";
+import { QRCodeCanvas } from "qrcode.react";
+
 
 const CHAVE_PIX = "43872033824";
 const VALOR = "10,00";
 const CONTATO = "(11) 90000-0000";
 
-const PIX_PAYLOAD = `PIX|${CHAVE_PIX}|${VALOR}`;
+<QRCodeCanvas value={PIX_PAYLOAD} size={200} level="H" />
+
 
 type Rifa = {
   numero: number;
@@ -147,7 +149,7 @@ export default function Home() {
             {/* QR CODE */}
             <div className="flex justify-center my-4">
               <div className="bg-white p-4 rounded-xl">
-                <QRCode value={PIX_PAYLOAD} size={200} level="H" />
+                <QRCodeCanvas value={PIX_PAYLOAD} size={200} level="H" />
               </div>
             </div>
 
