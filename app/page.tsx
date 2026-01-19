@@ -4,13 +4,13 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { QRCodeCanvas } from "qrcode.react";
 
-
+/* ===== CONFIGURAÇÕES ===== */
 const CHAVE_PIX = "43872033824";
-const VALOR = "10,00";
+const VALOR = "10.00"; // use ponto, não vírgula
 const CONTATO = "(11) 90000-0000";
 
-<QRCodeCanvas value={PIX_PAYLOAD} size={200} level="H" />
-
+/* ===== GERA PIX COPIA E COLA (SIMPLES) ===== */
+const PIX_PAYLOAD = `PIX|${CHAVE_PIX}|${VALOR}`;
 
 type Rifa = {
   numero: number;
@@ -25,10 +25,7 @@ export default function Home() {
   const [sucesso, setSucesso] = useState(false);
 
   const carregar = async () => {
-    const { data } = await supabase
-      .from("rifas")
-      .select("numero, status");
-
+    const { data } = await supabase.from("rifas").select("numero,status");
     if (data) setRifas(data);
   };
 
@@ -37,25 +34,15 @@ export default function Home() {
   }, []);
 
   const comprar = async () => {
-    if (!numero || !nome || !telefone) {
-      alert("Preencha todos os campos");
-      return;
-    }
+    if (!numero || !nome || !telefone) return;
 
     const { error } = await supabase.from("rifas").insert([
-      {
-        numero,
-        nome,
-        telefone,
-        status: "reservado",
-      },
+      { numero, nome, telefone, status: "reservado" },
     ]);
 
     if (!error) {
       setSucesso(true);
       carregar();
-    } else {
-      alert("Erro ao reservar número");
     }
   };
 
@@ -78,7 +65,7 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Grade de números */}
+        {/* Números */}
         <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
           {Array.from({ length: 100 }, (_, i) => i + 1).map((n) => {
             const status = statusNumero(n);
@@ -90,18 +77,9 @@ export default function Home() {
                 onClick={() => setNumero(n)}
                 className={`
                   py-2 rounded-xl text-sm font-bold transition
-                  ${
-                    status === "pago" &&
-                    "bg-green-600 cursor-not-allowed"
-                  }
-                  ${
-                    status === "reservado" &&
-                    "bg-yellow-500 text-black cursor-not-allowed"
-                  }
-                  ${
-                    status === "livre" &&
-                    "bg-gray-700 hover:bg-purple-600"
-                  }
+                  ${status === "pago" && "bg-green-600 cursor-not-allowed"}
+                  ${status === "reservado" && "bg-yellow-500 text-black cursor-not-allowed"}
+                  ${status === "livre" && "bg-gray-700 hover:bg-purple-600"}
                   ${numero === n && "ring-2 ring-purple-400"}
                 `}
               >
@@ -111,7 +89,7 @@ export default function Home() {
           })}
         </div>
 
-        {/* Formulário */}
+        {/* Form */}
         <div className="grid sm:grid-cols-3 gap-4">
           <input
             className="bg-gray-800 rounded-xl p-3 outline-none"
@@ -134,26 +112,21 @@ export default function Home() {
         {/* Pagamento */}
         {sucesso && (
           <div className="bg-black/60 border border-purple-500 rounded-2xl p-6 space-y-4 text-center">
-            <h2 className="text-green-400 font-bold text-2xl">
-              ✅ Número reservado
+            <h2 className="text-green-400 font-bold text-xl">
+              ✅ Número reservado!
             </h2>
 
-            <p>
-              <strong>Número:</strong> #{numero}
-            </p>
-
-            <p>
-              <strong>Valor:</strong> R$ {VALOR}
-            </p>
+            <p><strong>Número:</strong> #{numero}</p>
+            <p><strong>Valor:</strong> R$ {VALOR}</p>
 
             {/* QR CODE */}
-            <div className="flex justify-center my-4">
+            <div className="flex justify-center">
               <div className="bg-white p-4 rounded-xl">
-                <QRCodeCanvas value={PIX_PAYLOAD} size={200} level="H" />
+                <QRCodeCanvas value={PIX_PAYLOAD} size={220} />
               </div>
             </div>
 
-            <div className="bg-gray-900 rounded-xl p-4">
+            <div className="bg-gray-900 rounded-xl p-3">
               <p className="text-sm text-gray-400">Chave PIX:</p>
               <p className="font-mono break-all text-purple-400">
                 {CHAVE_PIX}
@@ -167,7 +140,7 @@ export default function Home() {
             </p>
 
             <p className="text-red-400 text-sm">
-              ⚠️ Confirmação manual após pagamento
+              ⚠️ Número confirmado somente após pagamento.
             </p>
           </div>
         )}
